@@ -120,17 +120,19 @@ def plot_monte_carlo(simulation_paths, percentiles_data):
     Shows the median path, and shaded areas for various percentiles.
     """
     simulations, days = simulation_paths.shape
-    x_axis = np.arange(days)
+    # Convert days to years for X axis
+    x_axis = np.arange(days) / 252.0
     
     fig = go.Figure()
 
     # Plot a few random individual paths (limit to 20 to avoid clutter)
-    for i in range(min(20, simulations)):
+    # Use a very faint gray
+    for i in range(min(50, simulations)):
         fig.add_trace(go.Scatter(
             x=x_axis,
             y=simulation_paths[i, :],
             mode='lines',
-            line=dict(color='lightgray', width=0.5),
+            line=dict(color='rgba(200, 200, 200, 0.3)', width=0.5),
             showlegend=False,
             hoverinfo='skip'
         ))
@@ -145,41 +147,46 @@ def plot_monte_carlo(simulation_paths, percentiles_data):
         line=dict(color=COLOR_PRIMARY, width=3)
     ))
     
-    # Plot Confidence Intervals (e.g. 10th-90th, 1st-99th)
-    # We can calculate these path-wise for the funnel effect
-    p10 = np.percentile(simulation_paths, 10, axis=0)
-    p90 = np.percentile(simulation_paths, 90, axis=0)
+    # Calculate and Plot Percentiles with specific colors
+    # We will pick a few key ones to highlight if they exist in the data
+    # or just plot all requested percentiles that are not median
     
-    fig.add_trace(go.Scatter(
-        x=x_axis,
-        y=p90,
-        mode='lines',
-        line=dict(width=0),
-        showlegend=False,
-        name='90th Percentile'
-    ))
+    # Sort percentiles to color gradient or specific assignment
+    sorted_ps = sorted([p for p in percentiles_data.keys() if p != 50])
     
-    fig.add_trace(go.Scatter(
-        x=x_axis,
-        y=p10,
-        mode='lines',
-        line=dict(width=0),
-        fill='tonexty',
-        fillcolor='rgba(0, 90, 156, 0.2)', # Transparent Blue
-        name='10th-90th Percentile'
-    ))
+    # Generate colors (heatmap style from red to green or similar? Or just distinct)
+    # Let's use a spectral palette or distinct colors
+    colors = px.colors.qualitative.Bold
+    
+    for i, p in enumerate(sorted_ps):
+        # Calculate path for this percentile over time
+        # This is strictly not correct mathematically for "path of the p-th percentile" 
+        # vs "p-th percentile of final values", but standard convention is to show 
+        # the p-th percentile slice at each time step.
+        path_p = np.percentile(simulation_paths, p, axis=0)
+        
+        # Color cycle
+        color = colors[i % len(colors)]
+        
+        fig.add_trace(go.Scatter(
+            x=x_axis,
+            y=path_p,
+            mode='lines',
+            name=f'{p}th Percentile',
+            line=dict(color=color, width=2, dash='dot')
+        ))
 
     # Add text annotations for final values of key percentiles
-    max_day = days - 1
+    max_year = x_axis[-1]
     for p, val in percentiles_data.items():
-        if p in [1, 50, 99]: # Label extremes and median
+        if p in [1, 10, 50, 90, 99]: # Label extremes and median
             fig.add_annotation(
-                x=max_day, y=val,
-                text=f"{p}th: {val:.2f}",
+                x=max_year, y=val,
+                text=f"{p}th: {val:,.0f}",
                 showarrow=True,
                 arrowhead=1,
-                ax=30 if p < 50 else 30,
+                ax= 40,
                 ay=0
             )
 
-    return apply_professional_layout(fig, f"Monte Carlo Simulation ({simulations} runs)", "Days into Future", "Projected Price")
+    return apply_professional_layout(fig, f"Monte Carlo Simulation ({simulations} runs)", "Years into Future", "Projected Portfolio Value")
