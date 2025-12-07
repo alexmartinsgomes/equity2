@@ -81,3 +81,7 @@ Open your browser at the local URL provided (usually `http://127.0.0.1:7860`).
 ## License
 
 MIT
+
+## Author
+
+Alexandre Martins - martins.gomes.alex@gmail.com

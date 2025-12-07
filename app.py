@@ -38,8 +38,7 @@ def run_analysis(ticker, start_date, end_date, forecast_years, extra_percentiles
     simulation_paths = analysis.monte_carlo_simulation(start_value, best_dist, best_params, days_to_simulate, simulations=num_simulations)
     
     # 5. Percentiles
-    # Default percentiles
-    percentiles_list = [1, 5, 10, 25, 50, 75, 90, 95, 99]
+    percentiles_list = [1, 5, 10, 25, 50, 75, 90]
     
     # Parse user extra percentiles
     if extra_percentiles_str:
@@ -82,7 +81,7 @@ with gr.Blocks(title="Equity Analysis App") as app:
             
             # Date defaults
             default_end = datetime.now().strftime("%Y-%m-%d")
-            default_start = (datetime.now() - timedelta(days=365*5)).strftime("%Y-%m-%d")
+            default_start = (datetime.now() - timedelta(days=365*10)).strftime("%Y-%m-%d")
             
             start_date_input = gr.Textbox(label="Start Date (YYYY-MM-DD)", value=default_start)
             end_date_input = gr.Textbox(label="End Date (YYYY-MM-DD)", value=default_end)

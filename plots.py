@@ -125,18 +125,6 @@ def plot_monte_carlo(simulation_paths, percentiles_data):
     
     fig = go.Figure()
 
-    # Plot a few random individual paths (limit to 20 to avoid clutter)
-    # Use a very faint gray
-    for i in range(min(50, simulations)):
-        fig.add_trace(go.Scatter(
-            x=x_axis,
-            y=simulation_paths[i, :],
-            mode='lines',
-            line=dict(color='rgba(200, 200, 200, 0.3)', width=0.5),
-            showlegend=False,
-            hoverinfo='skip'
-        ))
-
     # Plot Median (50th percentile)
     median_path = np.median(simulation_paths, axis=0)
     fig.add_trace(go.Scatter(
