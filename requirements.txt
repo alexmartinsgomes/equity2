@@ -1,0 +1,9 @@
+gradio
+yfinance
+pandas
+numpy
+scipy
+statsmodels
+plotly
+seaborn
+matplotlib
