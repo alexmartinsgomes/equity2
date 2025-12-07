@@ -44,7 +44,7 @@ def apply_professional_layout(fig, title, x_title, y_title):
     )
     return fig
 
-def plot_historical_prices(df, ticker):
+def plot_historical_prices(df, ticker, log_scale=False, as_percentage=False):
     """
     Plots historical adjusted close prices.
     """
@@ -52,17 +52,52 @@ def plot_historical_prices(df, ticker):
         y_col = 'Adj Close'
     else:
         y_col = 'Close'
+    
+    y_data = df[y_col]
+    
+    title_suffix = ""
+    y_axis_title = "Price"
+    
+    if as_percentage:
+        # Normalize to start at 0%
+        y_data = (y_data / y_data.iloc[0] - 1) * 100
+        title_suffix = " (%)"
+        y_axis_title = "Return (%)"
         
     fig = go.Figure()
     fig.add_trace(go.Scatter(
         x=df.index, 
-        y=df[y_col], 
+        y=y_data, 
         mode='lines', 
         name=ticker,
         line=dict(color=COLOR_PRIMARY, width=2)
     ))
     
-    return apply_professional_layout(fig, f"{ticker} - Historical Total Return (Adj Close)", "Date", "Price")
+    if log_scale:
+        fig.update_yaxes(type="log")
+        title_suffix += " (Log Scale)"
+
+    return apply_professional_layout(fig, f"{ticker} - Historical Total Return{title_suffix}", "Date", y_axis_title)
+
+def plot_drawdown(drawdown_series):
+    """
+    Plots the drawdown over time.
+    """
+    # Convert to percentage
+    drawdown_pct = drawdown_series * 100
+    
+    fig = go.Figure()
+    fig.add_trace(go.Scatter(
+        x=drawdown_pct.index,
+        y=drawdown_pct,
+        mode='lines',
+        name='Drawdown',
+        line=dict(color=COLOR_SECONDARY, width=1),
+        fill='tozeroy',
+        fillcolor='rgba(163, 0, 0, 0.2)' # Transparent Red
+    ))
+    
+    return apply_professional_layout(fig, "Drawdown (%)", "Date", "Drawdown from Peak (%)")
 
 def plot_returns_distribution(data, best_distribution, best_params):
     """

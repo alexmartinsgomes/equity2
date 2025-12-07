@@ -63,7 +63,18 @@ def get_best_fit_distribution(data, distributions=None):
     """
     if distributions is None:
         distributions = [
-            st.norm, st.t, st.lognorm, st.expon, st.cauchy, st.gamma, st.beta
+            st.norm,
+            st.t,
+            st.lognorm,
+            st.nct,
+            st.gennorm,
+            st.laplace,
+            st.expon,
+            st.cauchy,
+            st.skewcauchy,
+            st.skewnorm,
+            st.gamma,
+            st.beta
         ]
         
     # Get histogram of original data
@@ -139,3 +150,17 @@ def calculate_percentiles(simulation_paths, percentiles=[1, 5, 10, 25, 50, 75, 9
     final_prices = simulation_paths[:, -1]
     results = {p: np.percentile(final_prices, p) for p in percentiles}
     return results
+
+def calculate_drawdown(df):
+    """
+    Calculates the drawdown series for the given dataframe.
+    """
+    if 'Adj Close' in df.columns:
+        price_col = 'Adj Close'
+    else:
+        price_col = 'Close'
+        
+    prices = df[price_col]
+    peak = prices.cummax()
+    drawdown = (prices - peak) / peak
+    return drawdown

@@ -4,24 +4,25 @@ from datetime import datetime, timedelta
 import analysis
 import plots
 
-def run_analysis(ticker, start_date, end_date, forecast_years, extra_percentiles_str, initial_investment, simulations):
+def run_analysis(ticker, start_date, end_date, forecast_years, extra_percentiles_str, initial_investment, simulations, scale_type, value_type):
     """
     Main handler for the Gradio interface.
     """
     if not ticker:
-        return "Please enter a ticker symbol.", None, None, None, None
+        return "Please enter a ticker symbol.", None, None, None, None, None
     
     # 1. Fetch Data
     df, error = analysis.fetch_data(ticker, start_date, end_date)
     if error:
-        return f"Error fetching data: {error}", None, None, None, None
+        return f"Error fetching data: {error}", None, None, None, None, None
         
     if len(df) < 30:
-        return "Insufficient data points for analysis (need at least 30).", None, None, None, None
+        return "Insufficient data points for analysis (need at least 30).", None, None, None, None, None
     
-    # 2. Calculate Returns
+    # 2. Calculate Returns & Drawdown
     returns_dict = analysis.calculate_returns(df)
     daily_returns = returns_dict['daily']
+    drawdown = analysis.calculate_drawdown(df)
     
     # 3. Fit Distribution
     best_dist, best_params, fit_results = analysis.get_best_fit_distribution(daily_returns)
@@ -38,6 +39,7 @@ def run_analysis(ticker, start_date, end_date, forecast_years, extra_percentiles
     simulation_paths = analysis.monte_carlo_simulation(start_value, best_dist, best_params, days_to_simulate, simulations=num_simulations)
     
     # 5. Percentiles
+    # Default percentiles sorted and strictly as requested in prompt (1, 5, 10, 25, 50, 75, 90)
     percentiles_list = [1, 5, 10, 25, 50, 75, 90]
     
     # Parse user extra percentiles
@@ -58,17 +60,22 @@ def run_analysis(ticker, start_date, end_date, forecast_years, extra_percentiles
     report += f"Data Range: {start_date} to {end_date}\n"
     report += f"Last Price: {last_price:.2f}\n"
     report += f"Initial Investment: ${start_value:,.2f}\n"
-    report += f"Best Fit Distribution: {best_dist.name}\n\n"
+    report += f"Best Fit Distribution: {best_dist.name}\n"
+    report += f"Max Drawdown: {drawdown.min()*100:.2f}%\n\n"
     report += f"Projected Portfolio Value (End of {forecast_years} Years):\n"
     for p, val in percentile_values.items():
         report += f"{p}th Percentile: ${val:,.2f}\n"
         
     # Charts
-    chart_price = plots.plot_historical_prices(df, ticker)
+    log_scale = (scale_type == "Logarithmic")
+    as_percentage = (value_type == "Percentage Return")
+    
+    chart_price = plots.plot_historical_prices(df, ticker, log_scale=log_scale, as_percentage=as_percentage)
+    chart_drawdown = plots.plot_drawdown(drawdown)
     chart_dist = plots.plot_returns_distribution(daily_returns, best_dist, best_params)
     chart_sim = plots.plot_monte_carlo(simulation_paths, percentile_values)
     
-    return report, chart_price, chart_dist, chart_sim
+    return report, chart_price, chart_drawdown, chart_dist, chart_sim
 
 # Build UI
 with gr.Blocks(title="Equity Analysis App") as app:
@@ -81,7 +88,7 @@ with gr.Blocks(title="Equity Analysis App") as app:
             
             # Date defaults
             default_end = datetime.now().strftime("%Y-%m-%d")
-            default_start = (datetime.now() - timedelta(days=365*10)).strftime("%Y-%m-%d")
+            default_start = (datetime.now() - timedelta(days=365*5)).strftime("%Y-%m-%d")
             
             start_date_input = gr.Textbox(label="Start Date (YYYY-MM-DD)", value=default_start)
             end_date_input = gr.Textbox(label="End Date (YYYY-MM-DD)", value=default_end)
@@ -92,13 +99,18 @@ with gr.Blocks(title="Equity Analysis App") as app:
             
             percentiles_input = gr.Textbox(label="Additional Percentiles (comma separated)", placeholder="e.g. 2.5, 97.5")
             
+            gr.Markdown("### Chart Settings")
+            scale_input = gr.Radio(["Linear", "Logarithmic"], label="Scale", value="Linear")
+            value_input = gr.Radio(["Price/Value", "Percentage Return"], label="Value Display", value="Price/Value")
+            
             run_btn = gr.Button("Run Analysis", variant="primary")
             
         with gr.Column(scale=3):
             output_report = gr.Textbox(label="Analysis Report", lines=12)
             
     with gr.Row():
-        chart_price_output = gr.Plot(label="Historical Price")
+        chart_price_output = gr.Plot(label="Historical Analysis")
+        chart_drawdown_output = gr.Plot(label="Drawdown Analysis")
         
     with gr.Row():
         chart_dist_output = gr.Plot(label="Return Distribution Fit")
@@ -106,8 +118,8 @@ with gr.Blocks(title="Equity Analysis App") as app:
 
     run_btn.click(
         fn=run_analysis,
-        inputs=[ticker_input, start_date_input, end_date_input, years_input, percentiles_input, initial_investment_input, simulations_input],
-        outputs=[output_report, chart_price_output, chart_dist_output, chart_sim_output]
+        inputs=[ticker_input, start_date_input, end_date_input, years_input, percentiles_input, initial_investment_input, simulations_input, scale_input, value_input],
+        outputs=[output_report, chart_price_output, chart_drawdown_output, chart_dist_output, chart_sim_output]
     )
 
 if __name__ == "__main__":

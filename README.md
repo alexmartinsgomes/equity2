@@ -8,6 +8,8 @@ A comprehensive equity analysis tool built with Python, Gradio, and Plotly. This
     - Fetches historical data using `yfinance`.
     - Automatically adjusts for dividends and splits (uses `Adj Close`).
     - Calculates Daily, Monthly, Quarterly, and Yearly returns.
+    - **Interactive Chart options**: Toggle Linear/Log scale and Price/Percentage view.
+    - **Drawdown Analysis**: Visualizes maximum drawdown and historical drawdowns.
 
 - **Statistical Distribution Fitting**:
     - Tests multiple distributions (Normal, T, LogNormal, etc.) against daily returns.
