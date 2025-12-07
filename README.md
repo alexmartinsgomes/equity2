@@ -30,7 +30,7 @@ A comprehensive equity analysis tool built with Python, Gradio, and Plotly. This
 
 1. Clone the repository:
    ```bash
-   git clone <repository-url>
+   git clone https://github.com/alexmartinsgomes/equity2.git
    cd equity2
    ```
 
